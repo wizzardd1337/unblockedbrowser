@@ -11,7 +11,7 @@
             height: 100%;
             font-family: Arial, sans-serif;
             background-color: #fff;
-            overflow: hidden; /* Убираем скроллбар для iframe */
+            overflow: hidden;
         }
         
         #google-ui {
@@ -19,6 +19,7 @@
             flex-direction: column;
             align-items: center;
             height: 100%;
+            position: relative;
         }
 
         .nav {
@@ -109,7 +110,7 @@
             color: #202124;
         }
 
-        /* Стили для iframe и кнопки возврата */
+        /* --- Iframe --- */
         #frame-container {
             display: none;
             width: 100%;
@@ -141,6 +142,94 @@
         #back-btn:hover {
             background-color: #f1f3f4;
         }
+
+        /* --- Settings --- */
+        #settings-icon {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.3;
+            transition: opacity 0.2s;
+        }
+
+        #settings-icon:hover {
+            opacity: 1;
+        }
+
+        #settings-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 2000;
+            width: 350px;
+            font-family: Arial, sans-serif;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1999;
+        }
+
+        #settings-modal h3 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #202124;
+        }
+
+        #settings-modal label {
+            font-size: 13px;
+            color: #5f6368;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        #proxy-url-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #dfe1e5;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .save-btn {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+
+        .save-btn:hover {
+            background-color: #1557b0;
+        }
+
+        .close-btn {
+            background-color: #fff;
+            color: #1a73e8;
+            border: 1px solid #dfe1e5;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -165,6 +254,22 @@
             <button class="btn" onclick="handleSearch()">Поиск в Google</button>
             <button class="btn" onclick="handleUnblock()">Мне повезёт (Unblock)</button>
         </div>
+
+        <!-- Кнопка настроек -->
+        <div id="settings-icon" onclick="openSettings()" title="Настройки прокси">⚙️</div>
+    </div>
+
+    <!-- Модальное окно настроек -->
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div id="settings-modal">
+        <h3>Настройки Proxy (Ultraviolet)</h3>
+        <label for="proxy-url-input">Укажи базовую ссылку рабочего прокси (например: https://твойпрокси.com/uv/service/)</label>
+        <input type="text" id="proxy-url-input" placeholder="https://...">
+        <p style="font-size: 11px; color: #80868b; margin-top: 0;">Если Discord не работает, найди в интернете новую ссылку "Ultraviolet Proxy link" и вставь её сюда. Ссылка должна заканчиваться на /uv/service/</p>
+        <div class="modal-buttons">
+            <button class="close-btn" onclick="closeSettings()">Отмена</button>
+            <button class="save-btn" onclick="saveSettings()">Сохранить</button>
+        </div>
     </div>
 
     <div id="frame-container">
@@ -173,6 +278,33 @@
     </div>
 
     <script>
+        // Инициализация при загрузке
+        window.onload = function() {
+            const savedProxy = localStorage.getItem('uv_proxy_url');
+            if (savedProxy) {
+                document.getElementById('proxy-url-input').value = savedProxy;
+            }
+        };
+
+        // --- Настройки ---
+        function openSettings() {
+            document.getElementById('settings-modal').style.display = 'block';
+            document.getElementById('modal-overlay').style.display = 'block';
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').style.display = 'none';
+            document.getElementById('modal-overlay').style.display = 'none';
+        }
+
+        function saveSettings() {
+            const url = document.getElementById('proxy-url-input').value.trim();
+            localStorage.setItem('uv_proxy_url', url);
+            closeSettings();
+            alert("Настройки прокси сохранены!");
+        }
+
+        // --- Логика Поиска ---
         document.getElementById('search-form').addEventListener('submit', function(e) {
             e.preventDefault();
             handleSearch();
@@ -193,32 +325,46 @@
             }
         }
 
+        // --- Алгоритм кодирования Ultraviolet (XOR) ---
+        function encodeUV(str) {
+            if (!str) return str;
+            return encodeURIComponent(str.toString().split('').map((char, ind) => ind % 2 ? String.fromCharCode(char.charCodeAt() ^ 2) : char).join(''));
+        }
+
         function handleUnblock() {
-            let url = document.getElementById('search-query').value.trim();
-            if (!url) return;
+            let targetUrl = document.getElementById('search-query').value.trim();
+            if (!targetUrl) return;
             
-            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                url = 'https://' + url;
+            if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                targetUrl = 'https://' + targetUrl;
+            }
+
+            const proxyBase = localStorage.getItem('uv_proxy_url');
+            if (!proxyBase) {
+                alert("Пожалуйста, нажми на шестеренку (⚙️) в правом нижнем углу и укажи ссылку на прокси сервер!");
+                openSettings();
+                return;
             }
             
-            // Используем Google Translate, так как он снимает X-Frame-Options блокировки
-            const proxyUrl = 'https://translate.google.com/translate?sl=auto&tl=en&hl=en&u=' + encodeURIComponent(url);
+            // Собираем полную ссылку для проксирования через Ultraviolet
+            // Например: https://myproxy.com/uv/service/ + закодированный URL
+            let proxyUrl = proxyBase;
+            if (!proxyUrl.endsWith('/')) {
+                proxyUrl += '/';
+            }
+            proxyUrl += encodeUV(targetUrl);
+
             openInFrame(proxyUrl);
         }
 
         function openInFrame(url) {
-            // Скрываем Google UI
             document.getElementById('google-ui').style.display = 'none';
-            // Показываем контейнер с iframe
             document.getElementById('frame-container').style.display = 'block';
-            // Загружаем URL
             document.getElementById('proxy-frame').src = url;
         }
 
         function goBack() {
-            // Сбрасываем src чтобы остановить видео/аудио
             document.getElementById('proxy-frame').src = '';
-            // Скрываем iframe и показываем Google UI
             document.getElementById('frame-container').style.display = 'none';
             document.getElementById('google-ui').style.display = 'flex';
         }
