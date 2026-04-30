@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #fff;
+        }
+        
+        .nav {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            padding: 15px;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+
+        .nav a {
+            color: rgba(0,0,0,0.87);
+            text-decoration: none;
+            margin-left: 15px;
+        }
+
+        .nav a:hover {
+            text-decoration: underline;
+        }
+
+        .logo {
+            margin-top: 10vh;
+            margin-bottom: 30px;
+        }
+
+        .search-container {
+            position: relative;
+            width: 100%;
+            max-width: 584px;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .search-wrapper {
+            display: flex;
+            align-items: center;
+            border: 1px solid #dfe1e5;
+            border-radius: 24px;
+            padding: 0 14px;
+            height: 44px;
+        }
+
+        .search-wrapper:hover, .search-wrapper:focus-within {
+            box-shadow: 0 1px 6px rgba(32,33,36,.28);
+            border-color: rgba(223,225,229,0);
+        }
+
+        .search-icon {
+            fill: #9aa0a6;
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            background-color: transparent;
+        }
+
+        .buttons {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn {
+            background-color: #f8f9fa;
+            border: 1px solid #f8f9fa;
+            border-radius: 4px;
+            color: #3c4043;
+            font-size: 14px;
+            margin: 11px 4px;
+            padding: 0 16px;
+            line-height: 27px;
+            height: 36px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            border: 1px solid #dadce0;
+            box-shadow: 0 1px 1px rgba(0,0,0,.1);
+            color: #202124;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="#">Почта</a>
+        <a href="#">Картинки</a>
+    </div>
+
+    <img class="logo" src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google">
+    
+    <div class="search-container">
+        <form id="search-form">
+            <div class="search-wrapper">
+                <svg class="search-icon" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+                <input type="text" class="search-input" id="search-query" title="Поиск" autocomplete="off">
+            </div>
+        </form>
+    </div>
+
+    <div class="buttons">
+        <button class="btn" onclick="handleSearch()">Поиск в Google</button>
+        <button class="btn" onclick="handleUnblock()">Мне повезёт (Unblock)</button>
+    </div>
+
+    <script>
+        document.getElementById('search-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleSearch();
+        });
+
+        // Простая проверка, ввел ли пользователь ссылку или поисковый запрос
+        function isUrl(val) {
+            return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(val) || val.includes('.');
+        }
+
+        function handleSearch() {
+            const query = document.getElementById('search-query').value.trim();
+            if (!query) return;
+            
+            // Если ввели ссылку, то пытаемся разблокировать
+            if (isUrl(query) && !query.includes(' ')) {
+                handleUnblock();
+            } else {
+                // Иначе просто ищем в гугле
+                window.location.href = 'https://www.google.com/search?q=' + encodeURIComponent(query);
+            }
+        }
+
+        function handleUnblock() {
+            let url = document.getElementById('search-query').value.trim();
+            if (!url) return;
+            
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+            
+            // Используем Google Translate как встроенный "прокси" для обхода блокировок
+            // Это работает без серверов и прокси, просто через возможности самого Гугла
+            const proxyUrl = 'https://translate.google.com/translate?sl=auto&tl=en&hl=en&u=' + encodeURIComponent(url);
+            window.location.href = proxyUrl;
+        }
+    </script>
+</body>
+</html>
