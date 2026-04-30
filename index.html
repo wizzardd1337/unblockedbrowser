@@ -5,16 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Google</title>
     <style>
-        body {
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
             font-family: Arial, sans-serif;
+            background-color: #fff;
+            overflow: hidden; /* Убираем скроллбар для iframe */
+        }
+        
+        #google-ui {
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #fff;
+            height: 100%;
         }
-        
+
         .nav {
             width: 100%;
             display: flex;
@@ -102,28 +108,68 @@
             box-shadow: 0 1px 1px rgba(0,0,0,.1);
             color: #202124;
         }
+
+        /* Стили для iframe и кнопки возврата */
+        #frame-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #proxy-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        #back-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: #fff;
+            border: 1px solid #dfe1e5;
+            border-radius: 4px;
+            padding: 8px 15px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+        }
+        
+        #back-btn:hover {
+            background-color: #f1f3f4;
+        }
     </style>
 </head>
 <body>
-    <div class="nav">
-        <a href="#">Почта</a>
-        <a href="#">Картинки</a>
+    <div id="google-ui">
+        <div class="nav">
+            <a href="#">Почта</a>
+            <a href="#">Картинки</a>
+        </div>
+
+        <img class="logo" src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google">
+        
+        <div class="search-container">
+            <form id="search-form">
+                <div class="search-wrapper">
+                    <svg class="search-icon" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+                    <input type="text" class="search-input" id="search-query" title="Поиск" autocomplete="off">
+                </div>
+            </form>
+        </div>
+
+        <div class="buttons">
+            <button class="btn" onclick="handleSearch()">Поиск в Google</button>
+            <button class="btn" onclick="handleUnblock()">Мне повезёт (Unblock)</button>
+        </div>
     </div>
 
-    <img class="logo" src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google">
-    
-    <div class="search-container">
-        <form id="search-form">
-            <div class="search-wrapper">
-                <svg class="search-icon" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
-                <input type="text" class="search-input" id="search-query" title="Поиск" autocomplete="off">
-            </div>
-        </form>
-    </div>
-
-    <div class="buttons">
-        <button class="btn" onclick="handleSearch()">Поиск в Google</button>
-        <button class="btn" onclick="handleUnblock()">Мне повезёт (Unblock)</button>
+    <div id="frame-container">
+        <button id="back-btn" onclick="goBack()">🔙 Назад в Google</button>
+        <iframe id="proxy-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
     </div>
 
     <script>
@@ -132,7 +178,6 @@
             handleSearch();
         });
 
-        // Простая проверка, ввел ли пользователь ссылку или поисковый запрос
         function isUrl(val) {
             return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(val) || val.includes('.');
         }
@@ -141,12 +186,10 @@
             const query = document.getElementById('search-query').value.trim();
             if (!query) return;
             
-            // Если ввели ссылку, то пытаемся разблокировать
             if (isUrl(query) && !query.includes(' ')) {
                 handleUnblock();
             } else {
-                // Иначе просто ищем в гугле
-                window.location.href = 'https://www.google.com/search?q=' + encodeURIComponent(query);
+                openInFrame('https://www.google.com/search?igu=1&q=' + encodeURIComponent(query));
             }
         }
 
@@ -158,10 +201,26 @@
                 url = 'https://' + url;
             }
             
-            // Используем Google Translate как встроенный "прокси" для обхода блокировок
-            // Это работает без серверов и прокси, просто через возможности самого Гугла
+            // Используем Google Translate, так как он снимает X-Frame-Options блокировки
             const proxyUrl = 'https://translate.google.com/translate?sl=auto&tl=en&hl=en&u=' + encodeURIComponent(url);
-            window.location.href = proxyUrl;
+            openInFrame(proxyUrl);
+        }
+
+        function openInFrame(url) {
+            // Скрываем Google UI
+            document.getElementById('google-ui').style.display = 'none';
+            // Показываем контейнер с iframe
+            document.getElementById('frame-container').style.display = 'block';
+            // Загружаем URL
+            document.getElementById('proxy-frame').src = url;
+        }
+
+        function goBack() {
+            // Сбрасываем src чтобы остановить видео/аудио
+            document.getElementById('proxy-frame').src = '';
+            // Скрываем iframe и показываем Google UI
+            document.getElementById('frame-container').style.display = 'none';
+            document.getElementById('google-ui').style.display = 'flex';
         }
     </script>
 </body>
